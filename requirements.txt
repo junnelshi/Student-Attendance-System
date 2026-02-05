@@ -1,4 +1,4 @@
-Flask==3.0.0
-Werkzeug==3.0.1
-qrcode==7.4.2
-Pillow==10.1.0
+Flask==3.0.0        → Web framework 
+Werkzeug==3.0.1     → Helps Flask handle web requests
+qrcode==7.4.2       → For generating QR codes (attendance scanner feature)
+Pillow==10.1.0      → For handling images (webcam photos, QR codes)

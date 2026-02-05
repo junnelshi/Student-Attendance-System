@@ -1,0 +1,676 @@
+{% extends 'base.html' %}
+
+{% block title %}Camera Viewer{% endblock %}
+
+{% block extra_css %}
+<script src="{{ url_for('static', filename='js/tailwindcss.min.js') }}"></script>
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fadeIn {
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    .glass {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+
+    #webcam-video {
+        transform: scaleX(-1);
+    }
+    
+    .camera-controls-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .camera-select-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .camera-select-label {
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+    
+    .camera-select {
+        width: 100%;
+    }
+    
+    .camera-buttons-row {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .camera-button {
+        flex: 1;
+        white-space: nowrap;
+        font-size: 0.875rem;
+        min-height: 2.5rem;
+    }
+    
+    @media (min-width: 640px) {
+        .camera-controls-container {
+            flex-direction: row;
+            align-items: flex-end;
+            gap: 1rem;
+        }
+        
+        .camera-select-row {
+            flex: 1;
+        }
+        
+        .camera-buttons-row {
+            flex: none;
+            min-width: 180px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 -m-8 p-8 min-h-screen">
+    <div class="mb-6 animate-fadeIn">
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Camera Viewer</h1>
+        <p class="text-gray-600">
+            {% if update_idno %}Updating Student: <strong>{{ update_idno }}</strong>{% else %}Capture and enroll new students{% endif %}
+        </p>
+    </div>
+
+    <div id="message-box" class="hidden mb-6 animate-fadeIn">
+        <div id="message-content" class="rounded-xl p-4 shadow-lg"></div>
+    </div>
+
+    <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row gap-6">
+            <div class="glass rounded-2xl shadow-2xl p-6 animate-fadeIn md:w-1/2 md:shrink-0">
+                <div class="mb-6">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div id="live-status-dot" class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                        <h2 class="text-lg font-bold text-gray-800">Live Camera</h2>
+                    </div>
+                    
+                    <div class="camera-controls-container">
+                        <div class="camera-select-row">
+                            <label for="camera-select" class="camera-select-label">Select Camera:</label>
+                            <select id="camera-select" class="camera-select border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white">
+                                <option value="">Loading cameras...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-center">
+                        <div class="relative w-80 aspect-[4/3] rounded-xl overflow-hidden bg-gray-900 shadow-xl border-2 border-indigo-300">
+                            <video id="webcam-video" autoplay playsinline class="absolute inset-0 w-full h-full object-cover hidden"></video>
+                            <img id="snapshot-image" alt="Snapshot" class="absolute inset-0 w-full h-full object-cover hidden">
+                            <canvas id="camera-canvas" class="hidden"></canvas>
+                            <div id="camera-status-overlay" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-80">
+                                <div class="text-center">
+                                    <svg class="animate-spin h-10 w-10 text-white mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <p class="text-white text-sm font-medium">Select a camera to begin</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('save_student') }}" id="student-form" novalidate>
+                    <input type="hidden" name="webcam_image_data" id="webcam_image_data">
+                    <input type="hidden" name="update_idno" id="update_idno" value="{{ update_idno or '' }}">
+                    <input type="hidden" name="old_idno" id="old_idno" value="{{ student.idno if student else '' }}">
+                    
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 border-t pt-4">Student Information </h2>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label for="idno" class="block text-xs font-semibold text-gray-700 mb-1 uppercase">ID Number</label>
+                            <input type="text" id="idno" name="idno" required 
+                                   inputmode="numeric" 
+                                   class="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 outline-none text-sm" 
+                                   placeholder="Enter student ID"
+                                   value="{{ student.idno if student else '' }}">
+                            <div id="idno-error" class="text-xs text-red-500 mt-1 font-medium hidden">
+                                ID Number accepts only numbers (0-9).
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="lastname" class="block text-xs font-semibold text-gray-700 mb-1 uppercase">Last Name</label>
+                            <input type="text" id="lastname" name="lastname" required 
+                                   class="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 outline-none text-sm" 
+                                   placeholder="Enter last name"
+                                   value="{{ student.lastname if student else '' }}">
+                            <div id="lastname-error" class="text-xs text-red-500 mt-1 font-medium hidden">
+                                Last Name accepts only letters, spaces, or hyphens.
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="firstname" class="block text-xs font-semibold text-gray-700 mb-1 uppercase">First Name</label>
+                            <input type="text" id="firstname" name="firstname" required 
+                                   class="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 outline-none text-sm" 
+                                   placeholder="Enter first name"
+                                   value="{{ student.firstname if student else '' }}">
+                            <div id="firstname-error" class="text-xs text-red-500 mt-1 font-medium hidden">
+                                First Name accepts only letters, spaces, or hyphens.
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="course" class="block text-xs font-semibold text-gray-700 mb-1 uppercase">Course</label>
+                            <select id="course" name="course" required 
+                                    class="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 outline-none cursor-pointer text-sm">
+                                <option value="">Select Course</option>
+                                {% for c in ["BSIT - Bachelor of Science in Information Technology","BSCS - Bachelor of Science in Computer Science","BSBA - Bachelor of Science in Business Administration","BEED - Bachelor of Elementary Education","BSED - Bachelor of Science in Secondary Education","BSN - Bachelor of Science in Nursing","BSHM - Bachelor of Science in Hospitality Management","BSCJ - Bachelor of Science in Criminal Justice"] %}
+                                    <option value="{{ c }}" {% if student and student.course==c %}selected{% endif %}>{{ c }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="level" class="block text-xs font-semibold text-gray-700 mb-1 uppercase">Level</label>
+                            <select id="level" name="level" required 
+                                    class="w-full px-3 py-2 bg-white border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 outline-none cursor-pointer text-sm">
+                                <option value="">Select Level</option>
+                                {% for l in ['1','2','3','4'] %}
+                                    <option value="{{ l }}" {% if student and student.level==l %}selected{% endif %}>{{ l }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </form>
+
+                <button type="button" id="snap-btn" disabled 
+                        class="mt-4 w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                        </svg>
+                        SNAP
+                    </span>
+                </button>
+                
+                <button type="button" id="cancel-btn"
+                        class="mt-3 w-full bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-xl shadow-md hover:bg-gray-400 transform hover:scale-105 transition-all duration-200">
+                    CANCEL
+                </button>
+            </div>
+
+            <div class="glass rounded-2xl shadow-2xl p-6 animate-fadeIn md:w-1/2 md:shrink-0">
+                <div id="preview-placeholder" class="flex flex-col items-center justify-center h-full text-center py-12">
+                    <div class="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full p-6 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-700 mb-2">No Preview Yet</h3>
+                    <p class="text-gray-500 text-sm max-w-xs">Fill in the student information and capture a photo to see the preview</p>
+                </div>
+
+                <div id="preview-content" class="hidden">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Student Preview</h2>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="relative group">
+                            <div class="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl blur opacity-25"></div>
+                            <div class="relative aspect-square rounded-lg overflow-hidden bg-gray-100 shadow-lg">
+                                <img id="preview-profile-icon" 
+                                    src="{{ url_for('static', filename='images/profile-placeholder.png') }}" 
+                                    alt="Profile" 
+                                    class="w-full h-full object-cover">
+                                <img id="preview-snapshot-image" 
+                                    src="" 
+                                    alt="Preview" 
+                                    class="w-full h-full object-cover hidden">
+                            </div>
+                        </div>
+
+                        <div class="relative group">
+                            <div class="absolute -inset-1 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl blur opacity-25"></div>
+                            <div class="relative aspect-square rounded-lg overflow-hidden bg-white shadow-lg p-3 flex items-center justify-center">
+                                <img id="qrCodePreview" 
+                                    src="https://placehold.co/150x150/E0E0E0/999999?text=QR" 
+                                    alt="QR Code"
+                                    class="w-full h-full object-contain">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 mb-4 shadow-inner">
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                                <span class="font-semibold text-gray-600 uppercase text-xs">ID Number</span>
+                                <span id="previewIdno" class="font-bold text-gray-900">-</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                                <span class="font-semibold text-gray-600 uppercase text-xs">Last Name</span>
+                                <span id="previewLastname" class="font-bold text-gray-900">-</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                                <span class="font-semibold text-gray-600 uppercase text-xs">First Name</span>
+                                <span id="previewFirstname" class="font-bold text-gray-900">-</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                                <span class="font-semibold text-gray-600 uppercase text-xs">Course</span>
+                                <span id="previewCourse" class="font-bold text-gray-900">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold text-gray-600 uppercase text-xs">Level</span>
+                                <span id="previewLevel" class="font-bold text-gray-900">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="save-btn" 
+                            class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-200">
+                        <span class="flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Save
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+const idnoInput = document.getElementById('idno');
+const lastnameInput = document.getElementById('lastname');
+const firstnameInput = document.getElementById('firstname');
+const courseInput = document.getElementById('course');
+const levelInput = document.getElementById('level');
+
+const idnoError = document.getElementById('idno-error');
+const lastnameError = document.getElementById('lastname-error');
+const firstnameError = document.getElementById('firstname-error');
+
+const previewIdno = document.getElementById('previewIdno');
+const previewLastname = document.getElementById('previewLastname');
+const previewFirstname = document.getElementById('previewFirstname');
+const previewCourse = document.getElementById('previewCourse');
+const previewLevel = document.getElementById('previewLevel');
+
+const saveBtn = document.getElementById('save-btn');
+const snapBtn = document.getElementById('snap-btn');
+const cancelBtn = document.getElementById('cancel-btn');
+const studentForm = document.getElementById('student-form');
+
+const videoElement = document.getElementById('webcam-video');
+const canvasElement = document.getElementById('camera-canvas');
+const snapshotImage = document.getElementById('snapshot-image');
+const statusOverlay = document.getElementById('camera-status-overlay');
+
+const messageBox = document.getElementById('message-box');
+const messageContent = document.getElementById('message-content');
+
+const previewProfileIcon = document.getElementById('preview-profile-icon');
+const previewSnapshotImage = document.getElementById('preview-snapshot-image');
+const qrCodeContainer = document.querySelector('#preview-content > .grid > div:nth-child(2) > div:nth-child(2)'); 
+const webcamImageData = document.getElementById('webcam_image_data');
+const previewPlaceholder = document.getElementById('preview-placeholder');
+const previewContent = document.getElementById('preview-content');
+
+const cameraSelect = document.getElementById('camera-select');
+const liveStatusDot = document.getElementById('live-status-dot');
+
+let isCameraOn = false;
+let currentStream = null;
+let currentCameraId = null;
+const SNAPSHOT_WIDTH = 640;
+const SNAPSHOT_HEIGHT = 480;
+const idnoPattern = /^\d*$/; 
+const namePattern = /^[A-Za-z\s-]+$/;
+
+function showMessage(msg, type = 'error') {
+    messageBox.classList.remove('hidden');
+    
+    if (type === 'error') {
+        messageContent.className = 'rounded-xl p-4 shadow-lg bg-red-100 border-l-4 border-red-500 text-red-800';
+        messageContent.innerHTML = `
+            <div class="flex items-center gap-3">
+                <svg class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="font-semibold">${msg}</p>
+            </div>
+        `;
+    } else {
+        messageContent.className = 'rounded-xl p-4 shadow-lg bg-green-100 border-l-4 border-green-500 text-green-800';
+        messageContent.innerHTML = `
+            <div class="flex items-center gap-3">
+                <svg class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="font-semibold">${msg}</p>
+            </div>
+        `;
+    }
+    
+    setTimeout(() => messageBox.classList.add('hidden'), 5000);
+}
+
+function updateCameraStatus(status) {
+    if (status === 'started') {
+        liveStatusDot.className = 'w-3 h-3 bg-green-500 rounded-full animate-pulse';
+        snapBtn.disabled = false;
+        statusOverlay.classList.add('hidden');
+        videoElement.classList.remove('hidden');
+        statusOverlay.querySelector('p').textContent = 'Camera is live';
+    } else if (status === 'stopped') {
+        liveStatusDot.className = 'w-3 h-3 bg-red-500 rounded-full animate-pulse';
+        snapBtn.disabled = true;
+        statusOverlay.classList.remove('hidden');
+        videoElement.classList.add('hidden');
+        statusOverlay.querySelector('p').textContent = 'Select a camera to begin';
+    } else if (status === 'loading') {
+        liveStatusDot.className = 'w-3 h-3 bg-yellow-500 rounded-full animate-pulse';
+        snapBtn.disabled = true;
+        statusOverlay.classList.remove('hidden');
+        videoElement.classList.add('hidden');
+        statusOverlay.querySelector('p').textContent = 'Starting camera...';
+    }
+}
+
+function toggleInlineError(inputElement, errorElement, pattern) {
+    const value = inputElement.value.trim();
+    const isInvalid = value && !pattern.test(value); 
+    if (isInvalid) {
+        errorElement.classList.remove('hidden');
+    } else {
+        errorElement.classList.add('hidden');
+    }
+    return isInvalid;
+}
+
+idnoInput.addEventListener('input', () => {
+    toggleInlineError(idnoInput, idnoError, idnoPattern);
+});
+
+lastnameInput.addEventListener('input', () => {
+    toggleInlineError(lastnameInput, lastnameError, namePattern);
+});
+
+firstnameInput.addEventListener('input', () => {
+    toggleInlineError(firstnameInput, firstnameError, namePattern);
+});
+
+function validateInputFields() {
+    const idno = idnoInput.value.trim();
+    const lastname = lastnameInput.value.trim();
+    const firstname = firstnameInput.value.trim();
+    const course = courseInput.value; 
+    const level = levelInput.value;
+    
+    idnoError.classList.add('hidden');
+    lastnameError.classList.add('hidden');
+    firstnameError.classList.add('hidden');
+
+    if (!idno || !lastname || !firstname || course === "" || level === "") {
+        return { valid: false, message: "Please fill in all required student information fields." };
+    }
+
+
+    if (toggleInlineError(idnoInput, idnoError, idnoPattern)) {
+        return { valid: false, message: "ID Number must contain only numbers (0-9)." };
+    }
+
+
+    if (toggleInlineError(lastnameInput, lastnameError, namePattern)) {
+         return { valid: false, message: "Last Name contains invalid characters. Please use only letters, spaces, or hyphens." };
+    }
+    
+
+    if (toggleInlineError(firstnameInput, firstnameError, namePattern)) {
+         return { valid: false, message: "First Name contains invalid characters. Please use only letters, spaces, or hyphens." };
+    }
+    
+
+    return { valid: true, data: { idno, lastname, firstname, course, level } };
+}
+
+
+async function getAvailableCameras() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        
+        cameraSelect.innerHTML = '<option value="">Select a camera...</option>';
+        
+        if (videoDevices.length === 0) {
+            cameraSelect.innerHTML = '<option value="">No cameras found</option>';
+            showMessage('No camera devices detected. Please check permissions and connection.', 'error');
+            return;
+        }
+
+        videoDevices.forEach((device, index) => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `Camera ${index + 1}`;
+            cameraSelect.appendChild(option);
+        });
+
+        
+        if (videoDevices.length > 0) {
+            currentCameraId = videoDevices[0].deviceId;
+            cameraSelect.value = currentCameraId;
+            
+            setTimeout(startCamera, 1000);
+        }
+
+    } catch (error) {
+        console.error('Error getting cameras:', error);
+        cameraSelect.innerHTML = '<option value="">Error loading cameras</option>';
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+
+function stopStream() {
+    if (currentStream) {
+        const tracks = currentStream.getTracks();
+        tracks.forEach(track => track.stop());
+        currentStream = null;
+        isCameraOn = false;
+        updateCameraStatus('stopped');
+        showMessage('Camera stopped.', 'success');
+    }
+}
+
+
+async function startCamera() {
+    if (!currentCameraId) {
+        showMessage('Please select a camera first.');
+        return;
+    }
+
+    if (isCameraOn) {
+        return;
+    }
+
+    stopStream(); 
+    updateCameraStatus('loading');
+    
+    try {
+        const constraints = {
+            video: {
+                deviceId: { exact: currentCameraId },
+                width: { ideal: SNAPSHOT_WIDTH },
+                height: { ideal: SNAPSHOT_HEIGHT }
+            }
+        };
+
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        isCameraOn = true;
+        
+        videoElement.srcObject = currentStream;
+        videoElement.onloadedmetadata = () => {
+            videoElement.play();
+            updateCameraStatus('started');
+            showMessage('Camera started successfully!', 'success');
+        };
+    } catch (err) {
+        console.error("Camera error:", err);
+        statusOverlay.innerHTML = `
+            <div class="text-center">
+                <svg class="h-10 w-10 text-red-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-white text-sm">Camera access denied</p>
+            </div>
+        `;
+        updateCameraStatus('stopped');
+        showMessage('Could not access camera: ' + err.message);
+    }
+}
+
+function takeSnapshot() {
+    if (!isCameraOn) {
+        showMessage("Camera is not running.");
+        return null;
+    }
+    const ctx = canvasElement.getContext('2d');
+    canvasElement.width = SNAPSHOT_WIDTH;
+    canvasElement.height = SNAPSHOT_HEIGHT;
+    
+    // Flip the canvas horizontally to match the mirrored video
+    ctx.translate(SNAPSHOT_WIDTH, 0);
+    ctx.scale(-1, 1);
+    
+    ctx.drawImage(videoElement, 0, 0, SNAPSHOT_WIDTH, SNAPSHOT_HEIGHT);
+    
+    return canvasElement.toDataURL('image/jpeg', 0.9);
+}
+
+
+function generateLocalQrCode(data) {
+    if (typeof QRCode === 'undefined') {
+        console.error("QRCode library not loaded. Check static/js/qrcode.min.js is included.");
+        qrCodeContainer.innerHTML = '<p class="text-red-500 text-xs text-center">QR Library Missing</p>';
+        return;
+    }
+    
+    
+    qrCodeContainer.innerHTML = ''; 
+    
+    
+    new QRCode(qrCodeContainer, {
+        text: data,
+        width: 150,
+        height: 150,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+}
+
+
+snapBtn.addEventListener('click', () => {
+    console.log("SNAP button clicked. Starting validation...");
+    
+    // Check if camera is running
+    if (!isCameraOn) {
+        showMessage("⚠️ Please start the camera first by selecting a camera from the dropdown.", 'error');
+        return;
+    }
+    
+    const validation = validateInputFields();
+    
+    if (!validation.valid) {
+        showMessage(validation.message); 
+        return;
+    }
+    const data = validation.data;
+
+    const uri = takeSnapshot();
+    if (!uri) return;
+
+    // Update RIGHT preview with captured snapshot
+    previewProfileIcon.classList.add('hidden');
+    previewSnapshotImage.src = uri;
+    previewSnapshotImage.classList.remove('hidden');
+
+    previewIdno.textContent = data.idno;
+    previewLastname.textContent = data.lastname.toUpperCase();
+    previewFirstname.textContent = data.firstname.toUpperCase();
+    previewCourse.textContent = data.course;
+    previewLevel.textContent = data.level;
+
+    // Generate QR Code
+    generateLocalQrCode(data.idno);
+    
+    webcamImageData.value = uri;
+
+    // Show preview section
+    previewPlaceholder.classList.add('hidden');
+    previewContent.classList.remove('hidden');
+
+    showMessage("Photo captured! Review and save.", "success");
+});
+
+saveBtn.addEventListener('click', () => {
+    const validation = validateInputFields();
+
+    if (!validation.valid) {
+        showMessage(validation.message);
+        return;
+    }
+    
+    const updateId = document.getElementById('update_idno').value;
+    if (!updateId && !webcamImageData.value) {
+        showMessage("Please capture a photo before saving (new student).");
+        return;
+    }
+    
+    studentForm.submit();
+});
+
+cancelBtn.addEventListener('click', () => {
+    stopStream(); 
+    window.location.href = "{{ url_for('student_management') }}";
+});
+
+studentForm.addEventListener('submit', e => {
+    const validation = validateInputFields();
+    if (!validation.valid) {
+        showMessage(validation.message);
+        e.preventDefault();
+        return;
+    }
+    
+    const updateId = document.getElementById('update_idno').value;
+    if (!updateId && !webcamImageData.value) {
+        showMessage("Please capture a photo before saving (new student).");
+        e.preventDefault();
+    }
+});
+
+cameraSelect.addEventListener('change', function() {
+    currentCameraId = this.value;
+    if (isCameraOn) {
+        stopStream();
+        setTimeout(startCamera, 300);
+    }
+});
+
+window.addEventListener('beforeunload', stopStream);
+document.addEventListener('DOMContentLoaded', () => {
+    getAvailableCameras();
+    updateCameraStatus('stopped');
+});
+</script>
+{% endblock %}

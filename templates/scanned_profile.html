@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block title %}Scanned Student Profile{% endblock %}
+
+{% block content %}
+<style>
+    /* * NOTE: I'm keeping your original CSS styles (body, profile-card-wrapper, 
+     * profile-content-box, profile-snapshot, info-table, etc.) below, 
+     * but you can remove the <style> block entirely if these styles are 
+     * correctly included in your base.html or a linked CSS file. 
+    */
+    body, html {
+        margin: 0;
+        padding: 0;
+    }
+
+    .profile-card-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 100vh;
+        padding: 40px 20px;
+        background-color: #f5f5f5;
+    }
+    
+    .profile-content-box {
+        background: white;
+        width: 100%;
+        max-width: 500px;
+        padding: 30px;
+        text-align: center;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .profile-snapshot {
+        width: 180px;
+        height: 180px;
+        border: 3px solid #667eea;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 20px;
+        display: block;
+    }
+
+    .profile-icon {
+        width: 180px;
+        height: 180px;
+        border: 3px solid #667eea;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 80px;
+    }
+
+    .info-table {
+        width: 100%;
+        margin: 20px 0;
+        border-collapse: collapse;
+        border: 1px solid #ccc;
+    }
+
+    .info-table tr {
+        border-bottom: 1px solid #ccc;
+    }
+
+    .info-table td {
+        padding: 12px;
+        font-size: 15px;
+        text-align: left;
+        border-right: 1px solid #ccc;
+    }
+
+    .info-table td:last-child {
+        border-right: none;
+    }
+
+    .info-table .label {
+        font-weight: bold;
+        width: 35%;
+        background-color: #f9f9f9;
+    }
+
+    .attendance-badge {
+        background: #f0f4ff;
+        border-left: 4px solid #4CAF50;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+        color: #4CAF50;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    
+    .content-separator {
+        border-top: 1px solid #ccc;
+        margin-top: 25px;
+        padding-top: 15px;
+        font-size: 12px;
+        color: #999;
+    }
+    
+    .countdown-text {
+        color: #666;
+        font-size: 1rem;
+        margin: 20px 0;
+    }
+
+    .student-name {
+        color: #667eea;
+        margin: 15px 0;
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+
+    .back-btn {
+        margin-top: 25px;
+    }
+
+    .btn-blue {
+        background-color: #5856D6;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        cursor: pointer;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 500;
+        transition: background-color 0.3s;
+    }
+
+    .btn-blue:hover {
+        background-color: #4c4ba0;
+    }
+
+    @media (max-width: 600px) {
+        .profile-content-box {
+            padding: 20px;
+        }
+
+        .profile-snapshot {
+            width: 150px;
+            height: 150px;
+        }
+
+        .profile-icon {
+            width: 150px;
+            height: 150px;
+        }
+
+        .student-name {
+            font-size: 1.5rem;
+        }
+
+        .info-table td {
+            font-size: 14px;
+            padding: 10px;
+        }
+    }
+</style>
+
+<div class="profile-card-wrapper">
+    <div class="profile-content-box">
+        
+        <div id="profile-photo">
+            {# ✅ FIX: Use Jinja to display the photo URL passed from app.py #}
+            {% if student.image_url %}
+                <img src="{{ student.image_url }}" 
+                    alt="{{ student.firstname }}'s Photo" 
+                    class="profile-snapshot">
+            {% else %}
+                <div class="profile-icon">👤</div>
+            {% endif %}
+        </div>
+        
+        {# ✅ FIX: Use Jinja to display the student's full name #}
+        <div class="student-name">{{ student.lastname | default('N/A') }}, {{ student.firstname | default('N/A') }}</div>
+        
+        <table class="info-table">
+            <tr>
+                <td class="label">ID No.</td>
+                {# ✅ FIX: Use Jinja to display ID No. #}
+                <td>{{ student.idno | default('N/A') }}</td>
+            </tr>
+            <tr>
+                <td class="label">Last Name</td>
+                {# ✅ FIX: Use Jinja to display Last Name #}
+                <td>{{ student.lastname | default('N/A') }}</td>
+            </tr>
+            <tr>
+                <td class="label">First Name</td>
+                {# ✅ FIX: Use Jinja to display First Name #}
+                <td>{{ student.firstname | default('N/A') }}</td>
+            </tr>
+            <tr>
+                <td class="label">Course</td>
+                {# ✅ FIX: Use Jinja to display Course #}
+                <td>{{ student.course | default('N/A') }}</td>
+            </tr>
+            <tr>
+                <td class="label">Level</td>
+                {# ✅ FIX: Use Jinja to display Level #}
+                <td>{{ student.level | default('N/A') }}</td>
+            </tr>
+        </table>
+
+        <div class="attendance-badge">
+            ✓ Attendance Recorded
+        </div>
+        
+        <div class="countdown-text">
+            Returning to scanner in <span id="countdown" style="font-weight: bold; color: #667eea;">5</span> seconds
+        </div>
+        
+        <div class="content-separator">
+            © 2025 Barney and Friends. All rights reserved.
+        </div>
+
+        <div class="back-btn">
+            <a href="{{ url_for('qr_scanner') }}" class="btn-blue">Back to Scanner</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ❌ REMOVE the entire loadStudentData function.
+    // The data is now loaded by Jinja in Python!
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Countdown logic (modified to not rely on loadStudentData)
+        let countdown = 4; // Start at 5 seconds for consistency
+        const countdownElement = document.getElementById('countdown');
+        
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            if (countdownElement) {
+                countdownElement.textContent = countdown;
+            }
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                window.location.href = '{{ url_for("qr_scanner") }}';
+            }
+        }, 1000);
+    });
+</script>
+
+{% endblock %}

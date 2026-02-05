@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Profile{% endblock %}
+
+{% block content %}
+<style>
+
+    .profile-card-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 50px;
+    }
+    
+    .profile-content-box {
+        background: white;
+        width: 450px;
+        padding: 40px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+    
+    .profile-icon {
+        margin-bottom: 20px;
+    }
+
+    .profile-icon i {
+        font-size: 100px;
+        color: black;
+        border: 2px solid black;
+        border-radius: 50%;
+        padding: 10px;
+    }
+
+    .profile-snapshot {
+        width: 200px;
+        height: 200px;
+        border: 2px solid black;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 20px;
+        display: block;
+    }
+
+    .info-table {
+        width: 100%;
+        margin-top: 20px;
+        border-collapse: collapse;
+        border: 1px solid black;
+    }
+
+    .info-table td {
+        padding: 10px;
+        font-size: 16px;
+        text-align: left;
+        border: 1px solid black;
+    }
+
+    .info-table .label {
+        font-weight: bold;
+        width: 40%;
+    }
+    
+    .qr-section {
+        margin-top: 30px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #f9f9f9;
+    }
+    
+    .qr-section h3 {
+        margin-top: 0;
+        font-size: 14px;
+        color: #333;
+    }
+    
+    .qr-display {
+        display: flex;
+        justify-content: center;
+        margin: 15px 0;
+    }
+    
+    .qr-display img {
+        max-width: 150px;
+        height: auto;
+    }
+    
+    .content-separator {
+        border-top: 1px solid #ccc;
+        margin-top: 30px;
+        padding-top: 15px;
+        font-size: 12px;
+        color: #666;
+    }
+    
+    .back-btn {
+        margin-top: 20px;
+    }
+
+    .btn-blue {
+        background-color: #5856D6;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        border-radius: 4px;
+        text-decoration: none;
+        display: inline-block;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-blue:hover {
+        background-color: #4b46b8;
+    }
+</style>
+
+<div class="profile-card-wrapper">
+    <div class="profile-content-box">
+        
+        <!-- ✅ FIX: Use student.image_url instead of constructing path -->
+        {% if student.image_url %}
+            <img src="{{ student.image_url }}" 
+                 alt="Student Photo" 
+                 class="profile-snapshot"
+                 onerror="this.src='/default-icon'">
+        {% else %}
+            <img src="/default-icon" 
+                 alt="Student Photo" 
+                 class="profile-snapshot">
+        {% endif %}
+        
+        <table class="info-table">
+            <tr>
+                <td class="label">ID No.</td>
+                <td>{{ student.idno }}</td>
+            </tr>
+            <tr>
+                <td class="label">Last Name</td>
+                <td>{{ student.lastname }}</td>
+            </tr>
+            <tr>
+                <td class="label">First Name</td>
+                <td>{{ student.firstname }}</td>
+            </tr>
+            <tr>
+                <td class="label">Course</td>
+                <td>{{ student.course }}</td>
+            </tr>
+            <tr>
+                <td class="label">Level</td>
+                <td>{{ student.level }}</td>
+            </tr>
+        </table>
+        
+        <!-- ✅ FIX: Generate QR code client-side using JavaScript -->
+        <div class="qr-section">
+            <h3>QR Code</h3>
+            <div class="qr-display" id="qr-container">
+                <!-- QR code will be generated here by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="content-separator">
+            © 2025 Barney and Friends. All rights reserved.
+        </div>
+        
+        <div class="back-btn">
+            <a href="{{ url_for('student_management') }}" class="btn-blue">Back to Students</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// ✅ Generate QR code client-side
+document.addEventListener('DOMContentLoaded', function() {
+    const idno = "{{ student.idno }}";
+    const qrContainer = document.getElementById('qr-container');
+    
+    if (qrContainer && idno) {
+        try {
+            new QRCode(qrContainer, {
+                text: idno,
+                width: 150,
+                height: 150,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } catch (e) {
+            console.error('Error generating QR code:', e);
+            qrContainer.innerHTML = '<p style="color:red;">QR Code generation failed</p>';
+        }
+    }
+});
+</script>
+{% endblock %}

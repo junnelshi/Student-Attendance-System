@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+
+{% block title %}QR Code Scanner{% endblock %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto animate-fadeIn">
+    
+    <div class="glass rounded-xl shadow-lg p-3 lg:p-4">
+        
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
+            <div>
+                <h1 class="text-lg font-bold gradient-text">QR Code Scanner</h1>
+                <p class="text-gray-600 text-xs mt-0.5">Scan student QR codes to record attendance</p>
+            </div>
+            
+            {% if 'user_id' not in session %}
+            <a href="{{ url_for('login') }}" 
+                class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold py-1 px-3 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-1.5 text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                Login
+            </a>
+            {% else %}
+            <div class="flex items-center gap-2">
+                <div class="text-xs bg-green-100 text-green-800 px-2.5 py-1 rounded-md">
+                     Logged in as: {{ session.get('user_name', 'Admin') }}
+                </div>
+                <a href="{{ url_for('logout') }}" 
+                    class="text-xs text-red-600 hover:text-red-800 hover:underline">
+                    Logout
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3" id="scanner-section">
+            <label for="camera-select" class="block text-xs font-medium text-gray-700 mb-1">Select Camera:</label>
+            <select id="camera-select" class="w-full border border-gray-300 rounded-md px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <option value="">Loading cameras...</option>
+            </select>
+        </div>
+
+        <div class="relative mb-3" id="scanner-section">
+            <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg blur opacity-20"></div>
+            <div id="qr-reader" class="relative bg-gradient-to-br from-gray-900 to-black rounded-lg border border-indigo-500" style="width: 100%; position: relative;">
+                <div id="scanner-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-white bg-black bg-opacity-50" style="min-height: 200px;">
+                    <div class="text-xl mb-1.5">📷</div>
+                    <h3 class="text-xs font-semibold mb-0.5">Camera Ready</h3>
+                    <p class="text-gray-300" style="font-size: 10px;">Select a camera to begin scanning</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="status" class="text-center text-xs text-gray-600 mb-2">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
+                <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                Camera starting...
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<div id="profile-page" class="hidden fixed inset-0 bg-gray-100 z-50 overflow: hidden">
+    <style>
+        .profile-card-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        .profile-content-box {
+            background: white;
+            width: 90%;
+            max-width: 450px;
+            padding: 25px;
+            text-align: center;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-snapshot {
+            width: 150px;
+            height: 150px;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 15px;
+            display: block;
+        }
+
+        .profile-icon {
+            width: 200px;
+            height: 200px;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+        }
+
+        .info-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            border: 1px solid black;
+        }
+
+        .info-table td {
+            padding: 10px;
+            font-size: 16px;
+            text-align: left;
+            border: 1px solid black;
+        }
+
+        .info-table .label {
+            font-weight: bold;
+            width: 40%;
+        }
+
+        .attendance-badge {
+            background: #f0f4ff;
+            border-left: 4px solid #4CAF50;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 12px 0;
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .content-separator {
+            border-top: 1px solid #ccc;
+            margin-top: 12px;
+            padding-top: 8px;
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .countdown-text {
+            color: #999;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+
+        .student-name {
+            color: #667eea;
+            margin: 20px 0;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .profile-content-box {
+                width: 90%;
+                padding: 30px 20px;
+            }
+        }
+    </style>
+
+    <div class="profile-card-wrapper">
+        <div class="profile-content-box">
+            
+            <div id="profile-photo"></div>
+            
+            <div class="student-name" id="profile-name"></div>
+            
+            <table class="info-table">
+                <tr>
+                    <td class="label">ID No.</td>
+                    <td id="profile-idno"></td>
+                </tr>
+                <tr>
+                    <td class="label">Last Name</td>
+                    <td id="profile-lastname"></td>
+                </tr>
+                <tr>
+                    <td class="label">First Name</td>
+                    <td id="profile-firstname"></td>
+                </tr>
+                <tr>
+                    <td class="label">Course</td>
+                    <td id="profile-course"></td>
+                </tr>
+                <tr>
+                    <td class="label">Level</td>
+                    <td id="profile-level"></td>
+                </tr>
+            </table>
+
+            <div class="attendance-badge">
+                ✓ Attendance Recorded
+            </div>
+            
+            <div class="countdown-text">
+                Returning to scanner in <span id="countdown" style="font-weight: bold; color: #667eea;">5</span> seconds
+            </div>
+            
+            <div class="content-separator">
+                © 2025 Barney and Friends. All rights reserved.
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sweetalert2.min.css') }}">
+<script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/qrcode.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/webcam.min.js') }}"></script>
+
+<script>
+    let html5Qrcode = null;
+    let currentCameraId = null;
+    let isScanning = false;
+    let profileDisplayTimeout = null;
+
+    function getElement(id) {
+        const element = document.getElementById(id);
+        if (!element) {
+            console.error(`Element with id "${id}" not found`);
+        }
+        return element;
+    }
+
+    function playSuccessSound() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(1200, audioContext.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        } catch (e) {
+            console.log("Audio not supported");
+        }
+    }
+
+
+
+    function updateStatus(message, type = 'info') {
+        const statusElement = getElement('status');
+        if (!statusElement) return;
+        
+        const colors = {
+            info: { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-600' },
+            success: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-600' },
+            warning: { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-600' },
+            error: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-600' }
+        };
+        
+        const color = colors[type] || colors.info;
+        
+        statusElement.innerHTML = `
+            <div class="inline-flex items-center gap-2 px-4 py-2 ${color.bg} ${color.text} rounded-full">
+                <div class="w-2 h-2 ${color.dot} rounded-full ${type === 'success' ? 'animate-pulse' : ''}"></div>
+                ${message}
+            </div>
+        `;
+    }
+
+    async function getCameras() {
+        try {
+            if (typeof Html5Qrcode === 'undefined') {
+                updateStatus('QR Scanner Library not loaded!', 'error');
+                return;
+            }
+            
+            const devices = await Html5Qrcode.getCameras();
+            const cameraSelect = getElement('camera-select');
+            if (!cameraSelect) return;
+            
+            cameraSelect.innerHTML = '<option value="">Select a camera...</option>';
+            
+            devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.id;
+                option.text = device.label || `Camera ${cameraSelect.options.length}`;
+                cameraSelect.appendChild(option);
+            });
+            
+            if (devices.length > 0) {
+                currentCameraId = devices[0].id;
+                cameraSelect.value = currentCameraId;
+                setTimeout(startCamera, 500);
+            } else {
+                updateStatus('No cameras found. Please connect a camera.', 'error');
+            }
+        } catch (error) {
+            console.error('Error getting cameras:', error);
+            updateStatus('Error accessing cameras. Please check permissions.', 'error');
+            
+            Swal.fire({
+                title: 'Camera Error',
+                text: 'Unable to access camera devices. Please check browser permissions.',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#667eea',
+                position: 'center',
+                allowOutsideClick: false
+            });
+        }
+    }
+
+    async function startCamera() {
+        if (!currentCameraId) {
+            Swal.fire({
+                title: 'Select Camera',
+                text: 'Please select a camera first.',
+                icon: 'warning',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#667eea',
+                position: 'center',
+                allowOutsideClick: false
+            });
+            return;
+        }
+        
+        if (isScanning) {
+            return;
+        }
+        
+        try {
+            html5Qrcode = new Html5Qrcode("qr-reader");
+            
+            const config = {
+                fps: 10,
+                qrbox: { width: 200, height: 200 }
+            };
+            
+            const placeholder = getElement('scanner-placeholder');
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            await html5Qrcode.start(
+                currentCameraId,
+                config,
+                onScanSuccess,
+                onScanFailure
+            );
+            
+            isScanning = true;
+            updateStatus('Camera active - Ready to scan QR codes', 'success');
+            
+        } catch (error) {
+            console.error('Error starting camera:', error);
+            updateStatus(`Error starting camera: ${error.message}`, 'error');
+            
+            const placeholder = getElement('scanner-placeholder');
+            if (placeholder) {
+                placeholder.style.display = 'flex';
+            }
+            
+            Swal.fire({
+                title: 'Camera Error',
+                text: 'Unable to start camera. Please check if another application is using it.',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#667eea',
+                position: 'center',
+                allowOutsideClick: false
+            });
+        }
+    }
+
+    async function stopCamera() {
+        if (html5Qrcode && isScanning) {
+            try {
+                await html5Qrcode.stop();
+                isScanning = false;
+                html5Qrcode = null;
+                const placeholder = getElement('scanner-placeholder');
+                if (placeholder) {
+                    placeholder.style.display = 'flex';
+                }
+                
+                updateStatus('Camera stopped', 'warning');
+            } catch (error) {
+                console.error('Error stopping camera:', error);
+            }
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+    if (!isScanning || !html5Qrcode) return;
+    
+    playSuccessSound();
+    html5Qrcode.pause(true);
+    updateStatus('Processing QR code...', 'info');
+    
+    fetch('{{ url_for("scan_attendance") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idno: decodedText })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { 
+                throw new Error(err.message || `Server error: ${response.status}`); 
+            }).catch(() => {
+                throw new Error(`Server status: ${response.status} (${response.statusText})`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success && data.student) {
+            const student = data.student;
+            const idno = student.idno; 
+            
+            // ✅ CRITICAL FIX: Force complete page reload with cache busting
+            const timestamp = new Date().getTime();
+            const randomNum = Math.floor(Math.random() * 1000000);
+            const targetUrl = `{{ url_for('show_scanned_profile') }}?idno=${idno}&t=${timestamp}&r=${randomNum}`;
+            
+            // Use window.location.href for hard reload (not replace)
+            window.location.href = targetUrl;
+            
+        } else {
+            Swal.fire({
+                title: 'QR Not Recognized',
+                text: 'This QR code is not registered in the system. The student may have been removed or the QR code is invalid.',
+                icon: 'warning',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#667eea',
+                iconColor: '#f59e0b'
+            });
+            
+            setTimeout(() => {
+                if (html5Qrcode && isScanning) {
+                    html5Qrcode.resume();
+                    updateStatus('Camera active - Ready to scan QR codes', 'success');
+                }
+            }, 1500);
+        }
+    })
+    
+        
+        setTimeout(() => {
+            if (html5Qrcode && isScanning) {
+                html5Qrcode.resume();
+                updateStatus('Camera active - Ready to scan QR codes', 'success');
+            }
+        }, 1500);
+    };
+
+    function onScanFailure(error) {
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        getCameras();
+        const cameraSelect = getElement('camera-select');
+        
+        if (cameraSelect) {
+            cameraSelect.addEventListener('change', function() {
+                currentCameraId = this.value;
+                if (isScanning) {
+                    stopCamera();
+                    setTimeout(startCamera, 500);
+                }
+            });
+        }
+        
+        updateStatus('Camera starting...', 'info');
+    });
+
+    window.addEventListener('beforeunload', function() {
+        if (html5Qrcode && isScanning) {
+            stopCamera();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.code === 'Space' && !e.target.matches('input, select, textarea')) {
+            e.preventDefault();
+            if (isScanning) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        }
+        
+        if (e.code === 'Escape' && isScanning) {
+            stopCamera();
+        }
+    });
+</script>
+
+{% endblock %}

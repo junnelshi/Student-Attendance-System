@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Management{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8 animate-fadeIn">
+    <h1 class="text-3xl font-bold gradient-text">STUDENT MANAGEMENT</h1>
+    <button onclick="window.location.href='{{ url_for('camera_viewer') }}'"
+        class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                clip-rule="evenodd" />
+        </svg>
+        Add Student
+    </button>
+</div>
+
+<div class="grid lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-4 glass rounded-2xl shadow-2xl p-6 animate-fadeIn" style="animation-delay: 0.1s;">
+
+        <form id="update-student-form" action="{{ url_for('camera_viewer') }}" method="get">
+            <input type="hidden" id="old_idno" name="update_idno">
+            
+            <div class="text-center mb-6">
+                <div class="inline-block relative">
+                    <div class="absolute -inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur opacity-30"></div>
+                    <div class="relative w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center overflow-hidden">
+                        <img id="student-profile-img"
+                            src="/default-icon" alt="Student Image"
+                            class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <input type="text" id="edit_idno" name="idno" readonly
+                    class="w-full text-center text-sm text-gray-600 bg-gray-50 border-0 py-2 rounded-lg">
+            </div>
+
+            <div class="mb-4">
+                <input type="text" id="profile-name-display" readonly
+                    class="w-full text-center text-lg font-bold text-gray-800 bg-transparent border-0 border-b-2 border-gray-200 py-2 focus:outline-none">
+            </div>
+
+            <div class="mb-6">
+                <input type="text" id="profile-course-level-display" readonly
+                    class="w-full text-center text-sm text-gray-600 bg-transparent border-0 border-b-2 border-gray-200 py-2 focus:outline-none">
+            </div>
+
+            <div class="flex justify-center mb-6">
+                <div class="relative group">
+                    <div class="absolute -inset-2 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl blur opacity-25 group-hover:opacity-40 transition duration-200">
+                    </div>
+                    <div class="relative bg-white p-3 rounded-xl shadow-lg" id="qr-code-container">
+                        <!-- QR code will be generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" id="update-btn"
+                class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                Update
+            </button>
+        </form>
+    </div>
+
+    <div class="lg:col-span-8 glass rounded-2xl shadow-2xl p-6 animate-fadeIn" style="animation-delay: 0.2s;">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider rounded-tl-lg">
+                            ID No.</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Last Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">First Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Course</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Level</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider rounded-tr-lg">
+                            Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="student-table-body" class="divide-y divide-gray-200">
+                    {% set students = students or [] %}
+                    {% if students %}
+                    {% for student in students %}
+                    <tr class="student-row hover:bg-indigo-50 transition-colors duration-150 cursor-pointer"
+                        data-idno="{{ student.idno }}" 
+                        data-lastname="{{ student.lastname }}"
+                        data-firstname="{{ student.firstname }}" 
+                        data-course="{{ student.course }}"
+                        data-level="{{ student.level }}" 
+                        data-imageurl="{{ student.image_url }}">
+
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ student.idno }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ student.lastname }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ student.firstname }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ student.course }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ student.level }}</td>
+
+                        <td class="px-4 py-3 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <!-- View Profile Button -->
+                                <a href="{{ url_for('student_profile', idno=student.idno) }}"
+                                    class="p-2 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors duration-150"
+                                    title="View Profile"
+                                    onclick="console.log('View profile clicked for ID:', '{{ student.idno }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                        fill="currentColor">
+                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                        <path fill-rule="evenodd"
+                                            d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </a>
+
+                                <!-- Delete Button -->
+                                <button onclick="deleteStudent('{{ student.idno }}', event)"
+                                    class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-150"
+                                    title="Delete Student">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                        fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-12 text-center text-gray-500">
+                            <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <p>No students found. Click 'Add Student' to enroll a new student.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="confirm-modal"
+    class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 transform transition-all">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Confirm Deletion</h3>
+            <p id="confirm-message" class="text-gray-600 mb-6">Are you sure you want to delete this student?</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal()"
+                    class="flex-1 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors duration-150">
+                    Cancel
+                </button>
+                <a href="#" id="confirm-delete-btn"
+                    class="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold py-2 px-4 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-150 text-center">
+                    Delete
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+// ✅ FIX: Use Flask route to serve the actual default icon file
+const defaultImageUrl = '/default-icon';
+
+let studentToDeleteIdno = null;
+
+function openConfirmModal(idno) {
+    studentToDeleteIdno = idno;
+    document.getElementById('confirm-message').textContent =
+        'Are you sure you want to delete Student ID No. ' + idno + '?';
+    document.getElementById('confirm-delete-btn').href =
+        '{{ url_for("delete_student", idno="DUMMY") }}'.replace('DUMMY', idno);
+    document.getElementById('confirm-modal').classList.remove('hidden');
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirm-modal').classList.add('hidden');
+    studentToDeleteIdno = null;
+}
+
+function deleteStudent(idno, event) {
+    if (event) event.stopPropagation();
+    openConfirmModal(idno);
+}
+
+// ✅ FIX: Generate QR code using JavaScript with proper ID
+function updateQRCodeImage(idno) {
+    console.log('🔍 Generating QR code for ID:', idno);
+    console.log('🔍 ID type:', typeof idno, 'Value:', idno);
+    
+    const qrContainer = document.getElementById("qr-code-container");
+    
+    if (!qrContainer) {
+        console.error('❌ QR container not found!');
+        return;
+    }
+    
+    // Clear previous QR code completely
+    qrContainer.innerHTML = '';
+    
+    // Generate new QR code using the EXACT idno passed in
+    try {
+        new QRCode(qrContainer, {
+            text: String(idno), // Ensure it's a string
+            width: 112,
+            height: 112,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        console.log('✅ QR code generated successfully for:', idno);
+    } catch (e) {
+        console.error('❌ Error generating QR code:', e);
+        qrContainer.innerHTML = '<p style="text-align:center;color:red;">QR Error</p>';
+    }
+}
+
+function selectStudentForEdit(idno, event = null) {
+    if (event) event.stopPropagation();
+    
+    console.log('=== SELECT STUDENT FOR EDIT ===');
+    console.log('📋 Input ID:', idno);
+    console.log('📋 ID type:', typeof idno);
+    console.log('===============================');
+
+    // Remove highlight from all rows
+    $('#student-table-body tr').removeClass('bg-indigo-100');
+    
+    // ✅ CRITICAL: Find row using attribute selector to match exact string
+    const selectedRow = $(`tr[data-idno="${idno}"]`);
+    
+    if (selectedRow.length === 0) {
+        console.error('❌ No row found with data-idno:', idno);
+        console.log('Available rows:');
+        $('#student-table-body tr.student-row').each(function() {
+            console.log('- Row ID:', $(this).attr('data-idno'));
+        });
+        return;
+    }
+    
+    console.log('✅ Row found:', selectedRow.length);
+    selectedRow.addClass('bg-indigo-100');
+
+    // Get student data from the row using attr() for exact values
+    const lastname = selectedRow.attr('data-lastname');
+    const firstname = selectedRow.attr('data-firstname');
+    const course = selectedRow.attr('data-course');
+    const level = selectedRow.attr('data-level');
+    const imageUrl = selectedRow.attr('data-imageurl') || defaultImageUrl;
+
+    console.log('Student data retrieved:', { 
+        idno, 
+        lastname, 
+        firstname, 
+        course, 
+        level,
+        imageUrl 
+    });
+
+    const fullName = (lastname ? lastname.toUpperCase() : '') + ', ' + (firstname || '');
+    const courseLevel = (course ? course.toUpperCase() : '') + '-' + (level || '');
+
+    // Update the profile card
+    $('#student-profile-img').attr('src', imageUrl);
+    $('#old_idno').val(idno); 
+    $('#edit_idno').val(idno);
+    $('#profile-name-display').val(fullName);
+    $('#profile-course-level-display').val(courseLevel);
+
+    // ✅ CRITICAL: Generate QR code with the ACTUAL student's ID
+    updateQRCodeImage(idno);
+    
+    $('#update-btn').prop('disabled', false);
+}
+
+$(document).ready(function () {
+    console.log('🚀 Student Management page loaded');
+    console.log('🚀 jQuery version:', $.fn.jquery);
+    console.log('🚀 QRCode library loaded:', typeof QRCode !== 'undefined');
+    
+    // Debug: Log all student rows
+    console.log('=== AVAILABLE STUDENTS ===');
+    $('#student-table-body tr.student-row').each(function(index) {
+        const row = $(this);
+        console.log(`Student ${index + 1}:`, {
+            idno: row.attr('data-idno'),
+            name: row.attr('data-firstname') + ' ' + row.attr('data-lastname')
+        });
+    });
+    console.log('=========================');
+    
+    // ✅ CRITICAL FIX: Click handler that correctly passes the row's idno
+    $('#student-table-body tr.student-row').on('click', function () {
+        const row = $(this);
+        const idno = row.attr('data-idno'); // Use attr() to get exact string value
+        
+        console.log('=== ROW CLICKED ===');
+        console.log('Row ID (data-idno):', idno);
+        console.log('Row data:', {
+            lastname: row.attr('data-lastname'),
+            firstname: row.attr('data-firstname'),
+            course: row.attr('data-course'),
+            level: row.attr('data-level')
+        });
+        console.log('==================');
+        
+        selectStudentForEdit(idno);
+    });
+
+    // Form submit handler
+    $('#update-student-form').on('submit', function (e) {
+        e.preventDefault();
+        const originalId = $('#old_idno').val();
+        console.log('Update form submitted for ID:', originalId);
+        
+        if (!originalId || originalId === 'N/A') {
+            alert('No student selected to update.');
+            return;
+        }
+        window.location.href = '{{ url_for("camera_viewer") }}?update_idno=' + encodeURIComponent(originalId);
+    });
+
+    // Select first student on page load
+    const firstStudentRow = $('#student-table-body tr.student-row:first');
+    const firstStudentIdno = firstStudentRow.attr('data-idno'); // Use attr() not data()
+    
+    console.log('First student ID on page:', firstStudentIdno);
+
+    if (firstStudentIdno) {
+        // Wait for DOM and QRCode library to be fully ready
+        setTimeout(function() {
+            console.log('Auto-selecting first student...');
+            selectStudentForEdit(firstStudentIdno);
+        }, 300);
+    } else {
+        // No students - show default state
+        console.log('No students found - showing default state');
+        $('#student-profile-img').attr('src', defaultImageUrl);
+        $('#edit_idno').val('N/A');
+        $('#profile-name-display').val('No Student Selected');
+        $('#profile-course-level-display').val('--');
+        $('#update-btn').prop('disabled', true);
+    }
+});
+</script>
+{% endblock %}

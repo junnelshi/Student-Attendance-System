@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Login{% endblock %}
+
+{% block content %}
+
+
+<div class="min-h-[calc(100vh-200px)] flex items-center justify-center -mt-8">
+    <div class="w-full max-w-md animate-fadeIn">
+
+        
+        <div class="glass rounded-3xl shadow-2xl p-8">
+
+            
+            <div class="text-center mb-8">
+                <div class="inline-block relative mb-4">
+                    <div class="absolute -inset-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full blur opacity-30"></div>
+                    <div class="relative bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full p-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                <h1 class="text-3xl font-bold gradient-text mb-2">Admin Login</h1>
+                <p class="text-gray-600">Welcome!</p>
+            </div>
+
+            
+            <form method="POST" action="{{ url_for('login') }}" class="space-y-5">
+
+                
+                <div>
+                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Email Address
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                            </svg>
+                        </div>
+                        <input type="email" id="email" name="email" required
+                               class="w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all duration-200 outline-none"
+                               placeholder="admin@example.com"
+                               value="{{ request.form.email if request.form.email else '' }}">
+                    </div>
+                </div>
+
+                
+                <div>
+                    <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Password
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <input type="password" id="password" name="password" required
+                               class="w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all duration-200 outline-none"
+                               placeholder="••••••••">
+                    </div>
+                </div>
+
+                
+                <button type="submit"
+                        class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2">
+                    <span>Login</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+
+                
+                <div class="text-center pt-4">
+                    <p class="text-gray-600 text-sm">
+                        Don't want to login? 
+                        <a href="/" class="text-indigo-600 font-semibold hover:text-indigo-800 transition-colors">
+                            Return to Home Page
+                        </a>
+                    </p>
+                </div>
+            </form>
+        </div>
+
+
+
+<script src="{{ url_for('static', filename='js/sweetalert2.min.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    const showFastPopup = (title, text, icon) => {
+        Swal.fire({
+            title: title,
+            text: text || '',
+            icon: icon,
+            timer: 2000,         
+            showConfirmButton: false,
+            toast: true,         
+            position: 'top-end',
+            timerProgressBar: true
+        });
+    };
+
+    if (urlParams.get('logout') === 'true') {
+        showFastPopup('Logged Out', 'You have been successfully logged out.', 'success');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (urlParams.get('error') === 'true') {
+        showFastPopup('Login Failed', 'Invalid email or password.', 'error');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (urlParams.get('timeout') === 'true') {
+        showFastPopup('Session Expired', 'Please login again.', 'warning');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+
+{% block title %}View Attendance{% endblock %}
+
+{% block content %}
+<style>
+    .filter-section {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-left: 5px solid #4A148C;
+    }
+
+    .filter-section label {
+        font-weight: 600;
+        font-size: 1.5rem;
+        color: #333;
+        margin: 0;
+    }
+
+    .date-filter-form {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .date-filter-form label {
+        font-weight: 500;
+        font-size: 1rem;
+        color: #555;
+    }
+
+    .date-filter-form input[type="date"] {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        min-width: 160px;
+    }
+
+    .btn-go {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-go:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .attendance-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .attendance-table th {
+        background: linear-gradient(135deg, #4A148C 0%, #311B92 100%);
+        color: white;
+        padding: 16px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .attendance-table td {
+        padding: 14px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+        color: #333;
+    }
+
+    .attendance-table tr:hover {
+        background-color: #f9f9f9;
+    }
+
+    .attendance-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .attendance-table tr.bg-red-50 {
+        background-color: #fef2f2 !important; 
+    }
+    .attendance-table tr.text-red-500 td {
+        color: #ef4444; 
+        font-weight: 600;
+    }
+
+
+    .no-records {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+        font-size: 1.1rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .no-records-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: #ccc;
+    }
+</style>
+
+<div class="animate-fadeIn">
+    <div class="filter-section">
+        <label>VIEW ATTENDANCE</label>
+        
+        <form method="GET" action="{{ url_for('view_attendance') }}" class="date-filter-form">
+            <label>SELECT DATE</label>
+            <input type="date" name="date" value="{{ selected_date }}" required>
+            <button type="submit" class="btn-go">GO</button>
+        </form>
+    </div>
+
+    <div class="card">
+        {% if records %}
+        <div class="overflow-x-auto">
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>ID NO.</th>
+                        <th>LAST NAME</th>
+                        <th>FIRST NAME</th>
+                        <th>COURSE</th>
+                        <th>LEVEL</th>
+                        <th>TIME IN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr class="{% if record.lastname == 'N/A' %}text-red-500 bg-red-50{% endif %}">
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ record.idno }}</strong></td>
+                        <td>{{ record.lastname }}</td>
+                        <td>{{ record.firstname }}</td>
+                        <td><span class="course-badge">{{ record.course }}</span></td>
+                        <td><span class="level-badge">{{ record.level }}</span></td>
+                        <td><strong>{{ record.time_in }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-records">
+            <div class="no-records-icon">📊</div>
+            <h3>No attendance records found</h3>
+            <p>for **{{ selected_date }}**.</p>
+            <p class="mt-3 text-gray-500">Scan QR codes to record attendance, or select a different date.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .course-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+                color: #667eea;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                font-weight: 500;
+            }
+            
+            .level-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                background: linear-gradient(135deg, #4CAF5020 0%, #2196F320 100%);
+                color: #4CAF50;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                font-weight: 500;
+            }
+        `;
+        document.head.appendChild(style);
+    });
+</script>
+{% endblock %}

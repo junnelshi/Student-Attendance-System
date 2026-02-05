@@ -4,11 +4,7 @@
 
 {% block content %}
 <style>
-    /* * NOTE: I'm keeping your original CSS styles (body, profile-card-wrapper, 
-     * profile-content-box, profile-snapshot, info-table, etc.) below, 
-     * but you can remove the <style> block entirely if these styles are 
-     * correctly included in your base.html or a linked CSS file. 
-    */
+
     body, html {
         margin: 0;
         padding: 0;
@@ -167,7 +163,7 @@
     <div class="profile-content-box">
         
         <div id="profile-photo">
-            {# ✅ FIX: Use Jinja to display the photo URL passed from app.py #}
+            {# FIX: Use Jinja to display the photo URL passed from app.py #}
             {% if student.image_url %}
                 <img src="{{ student.image_url }}" 
                     alt="{{ student.firstname }}'s Photo" 
@@ -177,33 +173,33 @@
             {% endif %}
         </div>
         
-        {# ✅ FIX: Use Jinja to display the student's full name #}
+        {# FIX: Use Jinja to display the student's full name #}
         <div class="student-name">{{ student.lastname | default('N/A') }}, {{ student.firstname | default('N/A') }}</div>
         
         <table class="info-table">
             <tr>
                 <td class="label">ID No.</td>
-                {# ✅ FIX: Use Jinja to display ID No. #}
+                {# FIX: Use Jinja to display ID No. #}
                 <td>{{ student.idno | default('N/A') }}</td>
             </tr>
             <tr>
                 <td class="label">Last Name</td>
-                {# ✅ FIX: Use Jinja to display Last Name #}
+                {# FIX: Use Jinja to display Last Name #}
                 <td>{{ student.lastname | default('N/A') }}</td>
             </tr>
             <tr>
                 <td class="label">First Name</td>
-                {# ✅ FIX: Use Jinja to display First Name #}
+                {# FIX: Use Jinja to display First Name #}
                 <td>{{ student.firstname | default('N/A') }}</td>
             </tr>
             <tr>
                 <td class="label">Course</td>
-                {# ✅ FIX: Use Jinja to display Course #}
+                {# FIX: Use Jinja to display Course #}
                 <td>{{ student.course | default('N/A') }}</td>
             </tr>
             <tr>
                 <td class="label">Level</td>
-                {# ✅ FIX: Use Jinja to display Level #}
+                {# FIX: Use Jinja to display Level #}
                 <td>{{ student.level | default('N/A') }}</td>
             </tr>
         </table>
@@ -216,9 +212,6 @@
             Returning to scanner in <span id="countdown" style="font-weight: bold; color: #667eea;">5</span> seconds
         </div>
         
-        <div class="content-separator">
-            © 2025 Barney and Friends. All rights reserved.
-        </div>
 
         <div class="back-btn">
             <a href="{{ url_for('qr_scanner') }}" class="btn-blue">Back to Scanner</a>
@@ -227,7 +220,7 @@
 </div>
 
 <script>
-    // ❌ REMOVE the entire loadStudentData function.
+    // REMOVE the entire loadStudentData function.
     // The data is now loaded by Jinja in Python!
 
     document.addEventListener('DOMContentLoaded', function() {

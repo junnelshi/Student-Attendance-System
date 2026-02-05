@@ -27,7 +27,7 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching for development
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'static', 'images')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ ROBUST FIX: Use Flask route to serve the actual default icon file
+# Use Flask route to serve the actual default icon file
 DEFAULT_ICON = '/default-icon'
 
 init_database()
@@ -90,7 +90,7 @@ def qr_scanner():
 @app.route('/scanned-profile')
 def show_scanned_profile():
     """
-    ✅ FIXED ROUTE: Fetches student data based on 'idno' and applies 
+    Fetches student data based on 'idno' and applies 
     cache control headers correctly using make_response().
     """
     # 1. Get idno from query parameters 
@@ -129,7 +129,7 @@ def show_scanned_profile():
     rendered_html = render_template('scanned_profile.html', student=student)
     response = make_response(rendered_html)
     
-    # 5. ✅ CRITICAL FIX: Set no-cache headers on the Response object
+    # 5. CRITICAL FIX: Set no-cache headers on the Response object
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
@@ -239,7 +239,7 @@ def delete_user_route(user_id):
         return redirect(url_for('login'))
 
     if delete_user(user_id):
-        # ✅ AUTO-RESET: Reset ID counter after deletion
+        # AUTO-RESET: Reset ID counter after deletion
         try:
             conn = __import__('dbhelper').connect()
             cur = conn.cursor()
